@@ -4,6 +4,13 @@ A mobile-first, professional text editor application built for field travelers a
 
 ---
 
+## 🌐 Live Website
+
+- **Production Website (Vercel)**: [https://nsp-travel-sample-tracker.vercel.app](https://nsp-travel-sample-tracker.vercel.app)
+- **GitHub Repository**: [https://github.com/surendra2304/nsp-travel-sample-tracker](https://github.com/surendra2304/nsp-travel-sample-tracker)
+
+---
+
 ## ✨ Features
 
 - **📱 Mobile-First Responsive Design**:
@@ -42,10 +49,3 @@ A mobile-first, professional text editor application built for field travelers a
   - Placed at the far right of the top header.
   - Action buttons cleanly named **"Copy"** and **"WhatsApp"**.
   - No "Step" text for a clean, professional aesthetic.
-
----
-
-## 🚀 Repository & Deployment
-
-- **GitHub Repository**: [https://github.com/surendra2304/nsp-travel-sample-tracker](https://github.com/surendra2304/nsp-travel-sample-tracker)
-- **Vercel Dashboard Import**: [https://vercel.com/new](https://vercel.com/new) (Select `surendra2304/nsp-travel-sample-tracker` and click **Deploy**)
