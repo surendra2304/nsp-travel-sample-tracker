@@ -45,8 +45,7 @@ A mobile-first, professional text editor application built for field travelers a
 
 ---
 
-## 🚀 Live Links
+## 🚀 Repository & Deployment
 
-- **Live Website**: [https://surendra2304.github.io/nsp-travel-sample-tracker/](https://surendra2304.github.io/nsp-travel-sample-tracker/)
-- **1-Click Vercel Deploy**: [Deploy on Vercel](https://vercel.com/new/clone?repository-url=https://github.com/surendra2304/nsp-travel-sample-tracker)
 - **GitHub Repository**: [https://github.com/surendra2304/nsp-travel-sample-tracker](https://github.com/surendra2304/nsp-travel-sample-tracker)
+- **Vercel Dashboard Import**: [https://vercel.com/new](https://vercel.com/new) (Select `surendra2304/nsp-travel-sample-tracker` and click **Deploy**)
