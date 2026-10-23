@@ -1,5 +1,5 @@
 // Service Worker for Offline Field Usage
-const CACHE_NAME = 'nsp-travel-log-v1';
+const CACHE_NAME = 'nsp-tracker-v2';
 const ASSETS = [
   './',
   './index.html',

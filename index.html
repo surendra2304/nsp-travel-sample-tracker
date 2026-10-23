@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NSP Travel & Sample Tracker | WhatsApp Editor</title>
-  <meta name="description" content="Mobile-first WhatsApp text editor for logging field travel distances and samples for NSP Kms.">
+  <title>NSP Travel & Sample Tracker</title>
+  <meta name="description" content="Professional WhatsApp travel log editor for field distances and sample counts.">
   <meta name="theme-color" content="#128c7e">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="manifest" href="manifest.json">
@@ -12,82 +12,101 @@
 </head>
 <body class="theme-dark">
   <div class="app-container">
+    
     <!-- Top Header -->
     <header class="app-header">
-      <div class="header-brand-row">
-        <div class="brand-left">
-          <div class="brand-logo">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-          </div>
-          <div class="brand-info">
-            <h1>NSP Travel & Sample Tracker</h1>
-            <span class="brand-tagline">Direct to WhatsApp (NSP Kms)</span>
-          </div>
+      <!-- Left: Brand Info -->
+      <div class="header-left">
+        <div class="brand-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
         </div>
-
-        <div class="header-actions">
-          <button type="button" class="btn-icon" id="themeToggleBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
-            <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"/>
-              <line x1="12" y1="1" x2="12" y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/>
-              <line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-            </svg>
-            <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-          </button>
-          <button type="button" class="btn-secondary-sm" id="btnClearAll" title="Clear all entries for this day">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-            <span>Clear</span>
-          </button>
+        <div class="brand-info">
+          <h1>NSP Travel & Sample Tracker</h1>
+          <span class="brand-tagline">Direct to WhatsApp (NSP Kms)</span>
         </div>
       </div>
 
-      <!-- Date Display Banner -->
-      <div class="header-date-row">
-        <div class="date-badge-container">
-          <span class="date-label">DATE:</span>
-          <div class="date-selector-wrapper">
-            <input type="date" id="logDateInput" class="date-picker-input">
-            <div class="date-display-badge" id="dateDisplayBadge">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              <span id="formattedDateText">--/--/----</span>
-            </div>
+      <!-- Center: Date Controls with < > arrows and manual masked input (23/10/26) -->
+      <div class="header-center">
+        <div class="date-selector-bar">
+          <button type="button" class="btn-date-arrow" id="btnPrevDay" title="Previous Day">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+
+          <div class="date-input-wrap">
+            <svg class="date-cal-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <input 
+              type="text" 
+              id="manualDateInput" 
+              class="manual-date-input" 
+              placeholder="DD/MM/YYYY" 
+              maxlength="10"
+              autocomplete="off"
+            >
           </div>
-          <button type="button" class="btn-ghost-sm" id="btnToday" title="Jump to Today">Today</button>
+
+          <button type="button" class="btn-date-arrow" id="btnNextDay" title="Next Day">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+
+          <button type="button" class="btn-today" id="btnToday" title="Jump to Today">Today</button>
         </div>
+      </div>
+
+      <!-- Right: Theme toggle & Clear button (positioned at the far right) -->
+      <div class="header-right">
+        <button type="button" class="btn-icon" id="themeToggleBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+
+        <!-- Clear Button at the far right -->
+        <button type="button" class="btn-clear-right" id="btnClearAll" title="Clear all entries for this day">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          <span>Clear</span>
+        </button>
       </div>
     </header>
 
-    <!-- Main Content Area: Centered Mobile-First Container -->
+    <!-- Main Content Area: Centered Mobile-First Layout -->
     <main class="app-main-centered">
 
-      <!-- Central Input Box: Step 1 Place -> Step 2 KM -> End Route -->
+      <!-- Central Input Box: Professional Clean Interface (No "Step" text) -->
       <section class="center-flow-card" id="centerFlowCard">
         <div class="flow-header">
-          <div class="flow-step-indicator">
-            <span class="step-pill" id="stepPill">STEP 1</span>
-            <span class="step-hint" id="stepHint">Type place name & hit Enter</span>
+          <div class="flow-status-wrap">
+            <span class="flow-dot"></span>
+            <span class="flow-prompt-text" id="flowPromptText">Enter Destination / Place</span>
           </div>
           <div class="flow-shortcuts-hint">
-            <kbd>↵ Enter</kbd> to proceed
+            Press <kbd>Enter</kbd> to continue
           </div>
         </div>
 
@@ -96,11 +115,11 @@
             <!-- Input Row -->
             <div class="flow-input-row">
               <div class="input-icon" id="inputIcon">
-                <svg id="placeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg id="placeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
-                <svg id="kmIcon" class="hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg id="kmIcon" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/>
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
@@ -110,24 +129,20 @@
                 type="text" 
                 id="flowInput" 
                 class="flow-input" 
-                placeholder="Enter Place Name (e.g. Undi)..." 
+                placeholder="Enter place name (e.g. Undi, Lab, Room)..." 
                 autofocus
                 autocomplete="off"
                 autocapitalize="sentences"
               >
             </div>
 
-            <!-- Action Buttons Row (Touch Friendly) -->
+            <!-- Action Buttons Row: Clean Next & End (No enter or arrow symbols) -->
             <div class="flow-button-row">
-              <button type="submit" id="flowSubmitBtn" class="flow-submit-btn" title="Submit (Enter)">
-                <span id="btnSubmitText">Next ↵</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                  <polyline points="12 5 19 12 12 19"/>
-                </svg>
+              <button type="submit" id="flowSubmitBtn" class="flow-submit-btn" title="Submit">
+                <span id="btnSubmitText">Next</span>
               </button>
 
-              <button type="button" id="btnEndRoute" class="btn-end-route" title="Finish route without entering kilometers for this place">
+              <button type="button" id="btnEndRoute" class="btn-end-route" title="Finish trip without entering distance for this place">
                 <span>🏁 End</span>
               </button>
             </div>
@@ -152,7 +167,7 @@
           </div>
         </div>
 
-        <!-- Collected Samples Box: Left blank as default, shakes if not entered before clicking End -->
+        <!-- Collected Samples Box: Blank default, zero stripped automatically on typing -->
         <div class="samples-card-section" id="samplesWrapper">
           <div class="samples-card-content">
             <div class="samples-label-wrap">
@@ -162,11 +177,12 @@
             <div class="samples-stepper">
               <button type="button" class="stepper-btn" id="btnSamplesDec" title="Decrease Samples">−</button>
               <input 
-                type="number" 
+                type="text" 
                 id="samplesInput" 
                 class="samples-input" 
-                placeholder="-" 
-                min="0"
+                placeholder="0" 
+                inputmode="numeric"
+                autocomplete="off"
                 value=""
               >
               <button type="button" class="stepper-btn" id="btnSamplesInc" title="Increase Samples">+</button>
@@ -175,7 +191,7 @@
         </div>
       </section>
 
-      <!-- The Main Text Editor Card -->
+      <!-- The Main Text Editor: Fully Editable & Two-Way Synchronized -->
       <section class="editor-main-card">
         <div class="editor-card-header">
           <div class="editor-title-wrap">
@@ -189,34 +205,36 @@
             </div>
             <div>
               <h3>WhatsApp Text Editor</h3>
-              <span class="editor-subtitle">Updates instantly after typing & hitting Enter</span>
+              <span class="editor-subtitle">Directly editable • Preserves custom edits</span>
             </div>
           </div>
 
+          <!-- Renamed Action Buttons: "Copy" and "WhatsApp" -->
           <div class="editor-header-actions">
-            <button type="button" class="btn-copy-prominent" id="btnCopyWhatsapp">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <button type="button" class="btn-copy-action" id="btnCopyWhatsapp" title="Copy text to clipboard">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
               </svg>
-              <span id="copyBtnText">Copy for WhatsApp</span>
+              <span id="copyBtnText">Copy</span>
             </button>
-            <button type="button" class="btn-whatsapp-direct" id="btnShareWhatsapp" title="Open directly in WhatsApp for NSP Kms">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            
+            <button type="button" class="btn-whatsapp-action" id="btnShareWhatsapp" title="Open directly in WhatsApp for NSP Kms">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
               </svg>
-              <span>NSP Kms</span>
+              <span>WhatsApp</span>
             </button>
           </div>
         </div>
 
-        <!-- The Text Editor Body -->
+        <!-- The Text Editor Body: Monospace & Line Aligned -->
         <div class="editor-body">
           <textarea 
             id="whatsappOutput" 
             class="editor-textarea" 
             spellcheck="false"
-            placeholder="Your travel log will display here instantly as you type and hit Enter..."
+            placeholder="Your travel log will display here instantly as you type..."
           ></textarea>
         </div>
 

@@ -1,17 +1,20 @@
 /**
  * NSP Travel & Sample Tracker - Professional Mobile-First Logic
- * - Instant visibility: Place & KM update in copy field immediately on Enter
- * - Samples default blank with -
- * - Shakes samples box if End clicked without entering samples
- * - Direct native WhatsApp deep link (whatsapp://send) for NSP Kms
- * - Fully responsive for mobile
+ * - Exact WhatsApp column alignment for stops, Total Distance, and Samples
+ * - Arrow navigation for dates + manual masked date input (e.g. 23/10/26)
+ * - Zero stripping in samples field (no "08")
+ * - Sample count validation before End (shakes and prompts if empty)
+ * - Instant visibility in copy textarea as place & km are typed
+ * - Preserves manual text editor changes (won't get overwritten)
+ * - Clean professional UI without "Step" text
+ * - Direct native WhatsApp deep link (whatsapp://send?text=...)
  */
 
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'nsp_travel_logs_v4';
-  const CHIPS_KEY = 'nsp_quick_chips_v4';
+  const STORAGE_KEY = 'nsp_travel_logs_v5';
+  const CHIPS_KEY = 'nsp_quick_chips_v5';
   const DEFAULT_CHIPS = ['Lab', 'Room'];
 
   let appState = {
@@ -27,21 +30,21 @@
   };
 
   // --- DOM Elements ---
-  const logDateInput = document.getElementById('logDateInput');
-  const formattedDateText = document.getElementById('formattedDateText');
+  const manualDateInput = document.getElementById('manualDateInput');
+  const btnPrevDay = document.getElementById('btnPrevDay');
+  const btnNextDay = document.getElementById('btnNextDay');
   const btnToday = document.getElementById('btnToday');
   const themeToggleBtn = document.getElementById('themeToggleBtn');
   const btnClearAll = document.getElementById('btnClearAll');
 
-  // Center Flow
+  // Center Flow Card
   const centerFlowCard = document.getElementById('centerFlowCard');
+  const flowPromptText = document.getElementById('flowPromptText');
   const flowForm = document.getElementById('flowForm');
   const flowInput = document.getElementById('flowInput');
   const flowSubmitBtn = document.getElementById('flowSubmitBtn');
   const btnSubmitText = document.getElementById('btnSubmitText');
   const btnEndRoute = document.getElementById('btnEndRoute');
-  const stepPill = document.getElementById('stepPill');
-  const stepHint = document.getElementById('stepHint');
   const placeIcon = document.getElementById('placeIcon');
   const kmIcon = document.getElementById('kmIcon');
   const flowSubActions = document.getElementById('flowSubActions');
@@ -69,7 +72,7 @@
   const toast = document.getElementById('toast');
   const toastMessage = document.getElementById('toastMessage');
 
-  // --- Helper Functions ---
+  // --- Date Helper Utilities ---
   function getTodayDateString() {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -82,9 +85,20 @@
     if (!isoDateStr) return '';
     const parts = isoDateStr.split('-');
     if (parts.length === 3) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
+      return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
     }
     return isoDateStr;
+  }
+
+  function changeDateByDays(delta) {
+    const parts = appState.currentDate.split('-').map(Number);
+    if (parts.length !== 3) return;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    date.setDate(date.getDate() + delta);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    switchDate(`${yyyy}-${mm}-${dd}`);
   }
 
   function capitalizeFirst(str) {
@@ -134,7 +148,9 @@
       appState.logsByDate[dateKey] = {
         dateFormatted: formatDisplayDate(dateKey),
         stops: [],
-        samples: '' // Default blank as requested
+        samples: '', // Default blank
+        isCustom: false,
+        customText: ''
       };
     }
     return appState.logsByDate[dateKey];
@@ -184,43 +200,202 @@
     }
   }
 
-  // --- Flow UI Controller (The Center Box) ---
+  // --- Flow UI Controller (Center Box) ---
   function updateFlowUI() {
     if (appState.flowStep === 'PLACE') {
       centerFlowCard.classList.remove('mode-km');
-      stepPill.textContent = 'STEP 1';
-      stepHint.textContent = 'Type place name & hit Enter';
+      flowPromptText.textContent = 'Enter Destination / Place';
       placeIcon.classList.remove('hidden');
       kmIcon.classList.add('hidden');
       flowInput.type = 'text';
-      flowInput.placeholder = 'Enter Place Name (e.g. Undi, Lab)...';
+      flowInput.placeholder = 'Enter place name (e.g. Undi, Lab, Room)...';
       flowInput.value = '';
-      flowSubmitBtn.title = 'Next (Enter)';
-      btnSubmitText.textContent = 'Next ↵';
+      flowSubmitBtn.title = 'Next';
+      btnSubmitText.textContent = 'Next';
       flowSubActions.classList.add('hidden');
       btnEndRoute.innerHTML = '<span>🏁 End</span>';
       btnEndRoute.title = 'Finish route and open WhatsApp';
     } else {
       centerFlowCard.classList.add('mode-km');
-      stepPill.textContent = 'STEP 2';
-      stepHint.textContent = `Enter KM for "${appState.pendingPlace}"`;
+      flowPromptText.textContent = `Distance in KM for ${appState.pendingPlace}`;
       placeIcon.classList.add('hidden');
       kmIcon.classList.remove('hidden');
       flowInput.type = 'number';
       flowInput.step = 'any';
-      flowInput.placeholder = `KM distance for ${appState.pendingPlace} (e.g. 8)...`;
+      flowInput.placeholder = `KM distance for ${appState.pendingPlace} (e.g. 15)...`;
       flowInput.value = '';
-      flowSubmitBtn.title = 'Add Distance (Enter)';
-      btnSubmitText.textContent = 'Add KM ↵';
+      flowSubmitBtn.title = 'Add KM';
+      btnSubmitText.textContent = 'Add KM';
       flowSubActions.classList.remove('hidden');
       activePlaceDisplay.textContent = appState.pendingPlace;
       btnEndRoute.innerHTML = '<span>🏁 End (No KM)</span>';
-      btnEndRoute.title = `Finish route at "${appState.pendingPlace}" without entering distance`;
+      btnEndRoute.title = `Finish route at "${appState.pendingPlace}" without distance`;
     }
     flowInput.focus();
   }
 
-  // Submit Handler: Place & KM update copy field INSTANTLY
+  // --- Formatting Generator (Exact WhatsApp Alignment) ---
+  function generateFormattedText(dayData) {
+    const dateFormatted = dayData.dateFormatted || formatDisplayDate(appState.currentDate);
+    const stops = dayData.stops || [];
+    const samples = (dayData.samples !== undefined && dayData.samples !== null && dayData.samples !== '') 
+      ? dayData.samples 
+      : '';
+
+    // Calculate total kilometers
+    const totalKm = stops.reduce((acc, stop) => acc + (parseFloat(stop.km) || 0), 0);
+
+    // Calculate dynamic column alignment:
+    // Longest label among:
+    // 1) "Collected samples" (17 chars)
+    // 2) "Total Distance" (14 chars)
+    // 3) Any entered place name (e.g. "Kalavapudi modi" - 15 chars)
+    const longestLabelLen = Math.max(
+      17, // "Collected samples" length
+      ...stops.map(s => (s.place ? s.place.length : 0))
+    );
+
+    // Position hyphen 3 spaces past the longest word (e.g. col 20)
+    const hyphenCol = longestLabelLen + 3;
+
+    let lines = [];
+
+    // 1. Date on top
+    lines.push(dateFormatted);
+
+    // 2. An empty line directly below the date
+    lines.push('');
+
+    // 3. Each stop on two lines with hyphen and 3 spaces before number
+    stops.forEach(stop => {
+      if (stop.place) {
+        lines.push(stop.place);
+        if (stop.km !== null && stop.km !== undefined && stop.km !== '') {
+          const padding = ' '.repeat(hyphenCol);
+          lines.push(`${padding}-   ${stop.km}`);
+        }
+      }
+    });
+
+    // 4. An empty line below the data and above the totals
+    lines.push('');
+
+    // 5. Total Distance and Collected samples aligned at exact same column line
+    const labelTotal = 'Total Distance';
+    const labelSamples = 'Collected samples';
+
+    const padTotal = ' '.repeat(Math.max(1, hyphenCol - labelTotal.length));
+    const padSamples = ' '.repeat(Math.max(1, hyphenCol - labelSamples.length));
+
+    lines.push(`${labelTotal}${padTotal}-   ${totalKm}`);
+    lines.push(`${labelSamples}${padSamples}-   ${samples}`);
+
+    return lines.join('\n');
+  }
+
+  // --- Manual Text Editor Preservation ---
+  function updateStatsFromText(text) {
+    // Extract numbers after "-   "
+    const lines = text.split('\n');
+    let totalKm = 0;
+    let stopCount = 0;
+    
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('Total Distance')) {
+        const match = line.match(/-\s+(\d+(?:\.\d+)?)/);
+        if (match) totalKm = parseFloat(match[1]);
+      } else if (!trimmed.startsWith('Collected samples') && /-\s+(\d+(?:\.\d+)?)/.test(line)) {
+        stopCount++;
+      }
+    });
+
+    totalDistanceDisplay.textContent = totalKm;
+    stopsCount.textContent = `${stopCount} stop${stopCount === 1 ? '' : 's'}`;
+  }
+
+  function appendStopToCustom(dayData, place, km) {
+    let text = dayData.customText || '';
+    const totalMatch = text.search(/\n\s*Total Distance/i);
+    const hyphenCol = Math.max(20, (place || '').length + 3);
+
+    let snippet = `\n${place}`;
+    if (km !== null && km !== undefined && km !== '') {
+      snippet += `\n${' '.repeat(hyphenCol)}-   ${km}`;
+    }
+
+    if (totalMatch !== -1) {
+      const before = text.slice(0, totalMatch).replace(/\n+$/, '');
+      const after = text.slice(totalMatch);
+      text = before + snippet + '\n\n' + after.replace(/^\n+/, '');
+    } else {
+      text = text.trimEnd() + snippet;
+    }
+
+    dayData.customText = text;
+    whatsappOutput.value = text;
+    updateStatsFromText(text);
+  }
+
+  function attachKmToLastStopInCustom(dayData, km) {
+    let text = dayData.customText || '';
+    const totalMatch = text.search(/\n\s*Total Distance/i);
+    const hyphenCol = Math.max(20, (appState.pendingPlace || '').length + 3);
+    const kmLine = `\n${' '.repeat(hyphenCol)}-   ${km}`;
+
+    if (totalMatch !== -1) {
+      const before = text.slice(0, totalMatch).replace(/\n+$/, '');
+      const after = text.slice(totalMatch);
+      text = before + kmLine + '\n\n' + after.replace(/^\n+/, '');
+    } else {
+      text = text.trimEnd() + kmLine;
+    }
+
+    dayData.customText = text;
+    whatsappOutput.value = text;
+    updateStatsFromText(text);
+  }
+
+  // --- Render All ---
+  function renderAll(updateDateInput = true) {
+    const dayData = getActiveDayData();
+    const stops = dayData.stops || [];
+
+    // Date
+    if (updateDateInput) {
+      manualDateInput.value = dayData.dateFormatted || formatDisplayDate(appState.currentDate);
+    }
+
+    // Samples input: blank default, zero stripped
+    samplesInput.value = (dayData.samples !== undefined && dayData.samples !== null) ? dayData.samples : '';
+
+    // Output Textarea: preserve manual edits if user edited it
+    if (dayData.isCustom && dayData.customText) {
+      whatsappOutput.value = dayData.customText;
+      updateStatsFromText(dayData.customText);
+    } else {
+      const formatted = generateFormattedText(dayData);
+      whatsappOutput.value = formatted;
+      
+      const totalKm = stops.reduce((acc, stop) => acc + (parseFloat(stop.km) || 0), 0);
+      totalDistanceDisplay.textContent = totalKm;
+      stopsCount.textContent = `${stops.length} stop${stops.length === 1 ? '' : 's'}`;
+    }
+  }
+
+  function switchDate(isoDateStr, updateInput = true) {
+    appState.currentDate = isoDateStr;
+    appState.flowStep = 'PLACE';
+    appState.pendingPlace = '';
+    appState.activeStopIndex = null;
+    const dayData = getActiveDayData();
+    dayData.dateFormatted = formatDisplayDate(isoDateStr);
+    saveToStorage();
+    renderAll(updateInput);
+    updateFlowUI();
+  }
+
+  // --- Flow Submit Handler ---
   function handleFlowSubmit() {
     const value = flowInput.value.trim();
 
@@ -234,19 +409,23 @@
       const placeName = capitalizeFirst(value);
       const activeData = getActiveDayData();
 
-      // INSTANT VISIBILITY: Place name immediately added to copy field!
+      // Add stop with pending KM
       activeData.stops.push({
         id: 'stop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
         place: placeName,
-        km: '' // KM waiting to be typed
+        km: ''
       });
 
       appState.activeStopIndex = activeData.stops.length - 1;
       appState.pendingPlace = placeName;
       appState.flowStep = 'KM';
 
+      if (activeData.isCustom) {
+        appendStopToCustom(activeData, placeName, '');
+      }
+
       saveToStorage();
-      renderAll(); // Shows place name immediately in textarea!
+      renderAll(false);
       updateFlowUI();
     } else if (appState.flowStep === 'KM') {
       if (!value || isNaN(value) || parseFloat(value) < 0) {
@@ -258,7 +437,6 @@
       const kmValue = parseFloat(value);
       const activeData = getActiveDayData();
 
-      // Assign KM to the active stop immediately
       if (appState.activeStopIndex !== null && activeData.stops[appState.activeStopIndex]) {
         activeData.stops[appState.activeStopIndex].km = kmValue;
       } else {
@@ -269,12 +447,16 @@
         });
       }
 
+      if (activeData.isCustom) {
+        attachKmToLastStopInCustom(activeData, kmValue);
+      }
+
       appState.flowStep = 'PLACE';
       appState.pendingPlace = '';
       appState.activeStopIndex = null;
 
       saveToStorage();
-      renderAll(); // KM line and updated total distance shown instantly!
+      renderAll(false);
       updateFlowUI();
       showToast(`Added: ${kmValue} km`);
     }
@@ -284,7 +466,7 @@
   function handleEndRoute() {
     const activeData = getActiveDayData();
 
-    // 1. VALIDATION: Check if samples is entered. If blank, shake samples card and prompt!
+    // 1. VALIDATION: Samples must not be blank
     const samplesVal = samplesInput.value.trim();
     if (samplesVal === '' && (activeData.samples === '' || activeData.samples === undefined || activeData.samples === null)) {
       shakeElement(samplesWrapper);
@@ -294,13 +476,13 @@
       }, 1500);
       samplesInput.focus();
       showToast('⚠️ Please enter number of collected samples before ending!');
-      return; // Do not complete until samples entered!
+      return;
     }
 
-    // 2. Finalize any pending place without requiring KM
+    // 2. Finalize pending place without requiring KM
     if (appState.flowStep === 'KM' && appState.pendingPlace) {
       if (appState.activeStopIndex !== null && activeData.stops[appState.activeStopIndex]) {
-        activeData.stops[appState.activeStopIndex].km = null; // No KM needed for last place
+        activeData.stops[appState.activeStopIndex].km = null;
       }
       appState.flowStep = 'PLACE';
       appState.pendingPlace = '';
@@ -308,17 +490,21 @@
     } else {
       const currentVal = flowInput.value.trim();
       if (currentVal) {
+        const placeName = capitalizeFirst(currentVal);
         activeData.stops.push({
           id: 'stop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-          place: capitalizeFirst(currentVal),
+          place: placeName,
           km: null
         });
+        if (activeData.isCustom) {
+          appendStopToCustom(activeData, placeName, null);
+        }
         flowInput.value = '';
       }
     }
 
     saveToStorage();
-    renderAll();
+    renderAll(false);
     updateFlowUI();
 
     // 3. Automatically copy to clipboard & trigger direct native WhatsApp link for NSP Kms!
@@ -328,7 +514,6 @@
 
   function cancelPlaceStep() {
     const activeData = getActiveDayData();
-    // If we cancel KM step, remove the pending place from stops if it had no KM
     if (appState.activeStopIndex !== null && activeData.stops[appState.activeStopIndex] && activeData.stops[appState.activeStopIndex].km === '') {
       activeData.stops.splice(appState.activeStopIndex, 1);
     }
@@ -336,92 +521,23 @@
     appState.pendingPlace = '';
     appState.activeStopIndex = null;
     saveToStorage();
-    renderAll();
+    renderAll(false);
     updateFlowUI();
   }
 
-  // --- Exact WhatsApp Formatting Generator ---
-  function generateFormattedText() {
-    const dayData = getActiveDayData();
-    const dateFormatted = dayData.dateFormatted || formatDisplayDate(appState.currentDate);
-    const stops = dayData.stops || [];
-    const samples = (dayData.samples !== undefined && dayData.samples !== null && dayData.samples !== '') ? dayData.samples : '';
+  // --- Direct WhatsApp Native Opener (No Chrome tab opening) ---
+  function openDirectWhatsApp() {
+    const text = whatsappOutput.value;
+    if (!text.trim()) {
+      showToast('Please add places first!');
+      return;
+    }
 
-    // Calculate total kilometers
-    const totalKm = stops.reduce((acc, stop) => acc + (parseFloat(stop.km) || 0), 0);
-
-    // Dynamic column alignment:
-    // Aligns after longest place name (like "Kalavapudi modi" - 15) with a small gap of 3 spaces
-    const longestWord = Math.max(
-      15, // minimum baseline (Kalavapudi modi / Bhujabalapatnam)
-      'Total Distance'.length, // 14
-      'Collected samples'.length, // 17
-      ...stops.map(s => (s.place ? s.place.length : 0))
-    );
-    const hyphenCol = longestWord + 3;
-
-    let lines = [];
-
-    // 1. Date on top
-    lines.push(dateFormatted);
-
-    // 2. An empty line directly below the date
-    lines.push('');
-
-    // 3. Each stop on two lines with hyphen and 3 spaces before number
-    stops.forEach(stop => {
-      lines.push(stop.place);
-      if (stop.km !== null && stop.km !== undefined && stop.km !== '') {
-        const padding = ' '.repeat(hyphenCol);
-        lines.push(`${padding}-   ${stop.km}`);
-      }
-    });
-
-    // 4. An empty line below the data and above the totals
-    lines.push('');
-
-    // 5. Total Distance and Collected samples aligned at exact same column line
-    const label1 = 'Total Distance';
-    const label2 = 'Collected samples';
-
-    const pad1 = ' '.repeat(Math.max(1, hyphenCol - label1.length));
-    const pad2 = ' '.repeat(Math.max(1, hyphenCol - label2.length));
-
-    lines.push(`${label1}${pad1}-   ${totalKm}`);
-    // Left blank as default with - as requested
-    lines.push(`${label2}${pad2}-   ${samples}`);
-
-    return lines.join('\n');
-  }
-
-  // --- Render All ---
-  function renderAll() {
-    const dayData = getActiveDayData();
-    const stops = dayData.stops || [];
-
-    // Date
-    logDateInput.value = appState.currentDate;
-    formattedDateText.textContent = dayData.dateFormatted || formatDisplayDate(appState.currentDate);
-
-    // Metrics
-    const totalKm = stops.reduce((acc, stop) => acc + (parseFloat(stop.km) || 0), 0);
-    totalDistanceDisplay.textContent = totalKm;
-    stopsCount.textContent = `${stops.length} stop${stops.length === 1 ? '' : 's'}`;
-
-    // Samples: default blank with placeholder '-'
-    samplesInput.value = (dayData.samples !== undefined && dayData.samples !== null) ? dayData.samples : '';
-
-    // Formatted Text in Textarea
-    whatsappOutput.value = generateFormattedText();
-  }
-
-  function switchDate(isoDateStr) {
-    appState.currentDate = isoDateStr;
-    appState.flowStep = 'PLACE';
-    appState.pendingPlace = '';
-    appState.activeStopIndex = null;
-    renderAll();
-    updateFlowUI();
+    const encoded = encodeURIComponent(text);
+    // Direct native WhatsApp deep link scheme
+    const nativeWhatsAppUri = `whatsapp://send?text=${encoded}`;
+    window.location.href = nativeWhatsAppUri;
+    showToast('Opening WhatsApp for group NSP Kms...');
   }
 
   // --- Copy to Clipboard ---
@@ -443,9 +559,9 @@
       copyBtnText.textContent = 'Copied!';
       btnCopyWhatsapp.style.filter = 'brightness(1.2)';
       setTimeout(() => {
-        copyBtnText.textContent = 'Copy for WhatsApp';
+        copyBtnText.textContent = 'Copy';
         btnCopyWhatsapp.style.filter = 'none';
-      }, 1800);
+      }, 1600);
 
       showToast('Copied to clipboard! Ready to paste into NSP Kms.');
     } catch (err) {
@@ -457,23 +573,7 @@
     }
   }
 
-  // --- Direct WhatsApp Native Opener (No Chrome tab opening) ---
-  function openDirectWhatsApp() {
-    const text = whatsappOutput.value;
-    if (!text.trim()) {
-      showToast('Please add places first!');
-      return;
-    }
-
-    const encoded = encodeURIComponent(text);
-    // whatsapp:// URI scheme launches the native WhatsApp application directly on mobile/desktop without opening Chrome
-    const nativeWhatsAppUri = `whatsapp://send?text=${encoded}`;
-    
-    // Trigger native app directly
-    window.location.href = nativeWhatsAppUri;
-    showToast('Opening WhatsApp for group NSP Kms...');
-  }
-
+  // --- Toast & Animation Helpers ---
   let toastTimer = null;
   function showToast(msg) {
     if (toastTimer) clearTimeout(toastTimer);
@@ -501,7 +601,7 @@
       .replace(/'/g, '&#039;');
   }
 
-  // --- Event Listeners ---
+  // --- Event Listeners Initialization ---
   function initEventListeners() {
     flowForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -518,7 +618,7 @@
       }
     });
 
-    // Auto-capitalize first word live while typing
+    // Auto-capitalize first word live while typing place name
     flowInput.addEventListener('input', () => {
       if (appState.flowStep === 'PLACE' && flowInput.value.length > 0) {
         const val = flowInput.value;
@@ -535,7 +635,7 @@
         const activeData = getActiveDayData();
         if (val && !isNaN(val)) {
           activeData.stops[appState.activeStopIndex].km = parseFloat(val);
-          renderAll();
+          renderAll(false);
         }
       }
     });
@@ -555,6 +655,7 @@
         } else {
           appState.pendingPlace = placeName;
           activePlaceDisplay.textContent = placeName;
+          flowPromptText.textContent = `Distance in KM for ${placeName}`;
           flowInput.placeholder = `KM distance for ${placeName}...`;
           flowInput.focus();
         }
@@ -563,13 +664,25 @@
 
     btnAddChip.addEventListener('click', handleAddCustomChip);
 
-    // Samples input (default blank)
+    // Samples input (default blank, zero stripped on typing)
     samplesInput.addEventListener('input', () => {
+      let val = samplesInput.value.replace(/\D/g, '');
+      // Strip leading zeros (typing 8 doesn't show 08)
+      if (val.length > 1 && val.startsWith('0')) {
+        val = val.replace(/^0+/, '') || '0';
+      }
+      samplesInput.value = val;
+
       const dayData = getActiveDayData();
-      const val = samplesInput.value.trim();
-      dayData.samples = val === '' ? '' : parseInt(val, 10);
+      dayData.samples = val;
+      if (dayData.isCustom && dayData.customText) {
+        dayData.customText = dayData.customText.replace(
+          /(Collected samples\s*-\s*).*$/m,
+          (m, p1) => p1 + val
+        );
+      }
       saveToStorage();
-      whatsappOutput.value = generateFormattedText();
+      renderAll(false);
     });
 
     btnSamplesInc.addEventListener('click', () => {
@@ -578,7 +691,7 @@
       dayData.samples = current + 1;
       samplesInput.value = dayData.samples;
       saveToStorage();
-      whatsappOutput.value = generateFormattedText();
+      renderAll(false);
     });
 
     btnSamplesDec.addEventListener('click', () => {
@@ -588,12 +701,19 @@
         dayData.samples = current - 1;
         samplesInput.value = dayData.samples;
         saveToStorage();
-        whatsappOutput.value = generateFormattedText();
+        renderAll(false);
       }
     });
 
-    logDateInput.addEventListener('change', (e) => {
-      if (e.target.value) switchDate(e.target.value);
+    // Date navigation: Previous and Next arrows
+    btnPrevDay.addEventListener('click', () => {
+      changeDateByDays(-1);
+      showToast('Switched to Previous Day');
+    });
+
+    btnNextDay.addEventListener('click', () => {
+      changeDateByDays(1);
+      showToast('Switched to Next Day');
     });
 
     btnToday.addEventListener('click', () => {
@@ -601,6 +721,71 @@
       showToast('Switched to Today');
     });
 
+    // Manual date input with automatic "/" slashes insertion (e.g. 23 -> 23/, 10 -> 23/10/, 26 -> 23/10/26)
+    manualDateInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace') {
+        const val = manualDateInput.value;
+        if (val.endsWith('/')) {
+          e.preventDefault();
+          manualDateInput.value = val.slice(0, -2);
+          manualDateInput.dispatchEvent(new Event('input'));
+        }
+      }
+    });
+
+    manualDateInput.addEventListener('input', (e) => {
+      let digits = manualDateInput.value.replace(/\D/g, '');
+      if (digits.length > 8) digits = digits.slice(0, 8);
+
+      let formatted = '';
+      if (digits.length > 0) {
+        formatted = digits.slice(0, 2);
+        if (digits.length >= 2) {
+          formatted += '/';
+          if (digits.length > 2) {
+            formatted += digits.slice(2, 4);
+            if (digits.length >= 4) {
+              formatted += '/';
+              if (digits.length > 4) {
+                formatted += digits.slice(4, 8);
+              }
+            }
+          }
+        }
+      }
+      manualDateInput.value = formatted;
+
+      // When full date is entered (6 digits: DDMMYY or 8 digits: DDMMYYYY)
+      if (digits.length === 6 || digits.length === 8) {
+        const d = parseInt(digits.slice(0, 2), 10);
+        const m = parseInt(digits.slice(2, 4), 10);
+        let y = parseInt(digits.slice(4), 10);
+        if (digits.length === 6) {
+          y = y < 100 ? 2000 + y : y;
+        }
+        if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2099) {
+          const isoDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          if (isoDate !== appState.currentDate) {
+            switchDate(isoDate, false);
+          }
+        }
+      }
+    });
+
+    // Editor textarea input: Preserve user's manual edits
+    whatsappOutput.addEventListener('input', () => {
+      const dayData = getActiveDayData();
+      dayData.isCustom = true;
+      dayData.customText = whatsappOutput.value;
+      saveToStorage();
+      updateStatsFromText(whatsappOutput.value);
+    });
+
+    // Action buttons
+    btnCopyWhatsapp.addEventListener('click', copyToClipboard);
+    btnShareWhatsapp.addEventListener('click', openDirectWhatsApp);
+
+    // Theme toggle
     themeToggleBtn.addEventListener('click', () => {
       const isLight = document.body.classList.contains('theme-light');
       if (isLight) {
@@ -615,6 +800,7 @@
       saveToStorage();
     });
 
+    // Undo Last Stop
     btnUndoLast.addEventListener('click', () => {
       const dayData = getActiveDayData();
       if (!dayData.stops || dayData.stops.length === 0) {
@@ -622,43 +808,45 @@
         return;
       }
       const popped = dayData.stops.pop();
+      dayData.isCustom = false;
+      dayData.customText = '';
       appState.flowStep = 'PLACE';
       appState.pendingPlace = '';
       appState.activeStopIndex = null;
       saveToStorage();
-      renderAll();
+      renderAll(false);
       updateFlowUI();
       showToast(`Undid: ${popped.place}`);
     });
 
+    // Clear All (Far Right)
     btnClearAll.addEventListener('click', () => {
       const dayData = getActiveDayData();
-      if (!dayData.stops || dayData.stops.length === 0) {
+      if ((!dayData.stops || dayData.stops.length === 0) && !dayData.isCustom && !dayData.samples) {
         showToast('Already clear.');
         return;
       }
-      if (confirm(`Clear all stops recorded for ${dayData.dateFormatted}?`)) {
+      if (confirm(`Clear all stops and custom edits for ${dayData.dateFormatted}?`)) {
         dayData.stops = [];
         dayData.samples = '';
+        dayData.isCustom = false;
+        dayData.customText = '';
         appState.flowStep = 'PLACE';
         appState.pendingPlace = '';
         appState.activeStopIndex = null;
         saveToStorage();
-        renderAll();
+        renderAll(false);
         updateFlowUI();
         showToast('All stops cleared.');
       }
     });
-
-    btnCopyWhatsapp.addEventListener('click', copyToClipboard);
-    btnShareWhatsapp.addEventListener('click', openDirectWhatsApp);
   }
 
   function init() {
     loadFromStorage();
     initEventListeners();
     renderQuickChips();
-    renderAll();
+    renderAll(true);
     updateFlowUI();
 
     if ('serviceWorker' in navigator) {
