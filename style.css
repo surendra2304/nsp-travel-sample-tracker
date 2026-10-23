@@ -95,7 +95,7 @@ body {
 }
 
 /* ==========================================================================
-   Header (Mobile First & Centered Date Bar)
+   Header (Mobile First: Left Theme Button, Center Heading, Right Clear Button)
    ========================================================================== */
 .app-header {
   display: flex;
@@ -104,20 +104,42 @@ body {
   padding-bottom: 0.85rem;
   margin-bottom: 1rem;
   border-bottom: 1px solid var(--border-color);
+  width: 100%;
 }
 
-.header-left {
+.header-top-bar {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.4rem;
+}
+
+/* Left: Light Theme Toggle */
+.header-left-action {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Center: Main Heading & Brand */
+.header-center-brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .brand-logo {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-sm);
   background: linear-gradient(135deg, #10b981 0%, #047857 100%);
   color: white;
@@ -125,21 +147,41 @@ body {
   flex-shrink: 0;
 }
 
+.brand-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
 .brand-info h1 {
-  font-size: 1.08rem;
+  font-size: 1.02rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .brand-tagline {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--accent-emerald);
   font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Right: Clear Button */
+.header-right-action {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 /* Center Date Controls Bar */
-.header-center {
+.header-date-bar {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,7 +232,7 @@ body {
 }
 
 .manual-date-input {
-  width: 105px;
+  width: 114px;
   background: transparent;
   border: none;
   outline: none;
@@ -223,14 +265,6 @@ body {
 .btn-today:hover {
   background: rgba(6, 182, 212, 0.15);
   border-color: var(--accent-cyan);
-}
-
-/* Header Right: Theme and Far-Right Clear Button */
-.header-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
 }
 
 .btn-icon {
@@ -579,14 +613,15 @@ kbd {
   background: rgba(6, 182, 212, 0.1);
 }
 
-/* Collected Samples Section (Shakes if empty when clicking End) */
+/* Collected Samples Section (Centered on mobile as requested) */
 .samples-card-section {
-  margin-top: 0.85rem;
+  margin: 0.85rem auto 0;
   background-color: var(--bg-input);
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 0.75rem 0.85rem;
+  padding: 0.85rem 1rem;
   transition: var(--transition);
+  width: 100%;
 }
 
 .samples-card-section.error-highlight {
@@ -597,32 +632,37 @@ kbd {
 
 .samples-card-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  text-align: center;
+  width: 100%;
 }
 
 .samples-label-wrap {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .samples-title {
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--accent-amber);
 }
 
 .samples-subnote {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
 }
 
 .samples-stepper {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
 .stepper-btn {
@@ -873,6 +913,48 @@ kbd {
 }
 
 /* ==========================================================================
+   Mobile Responsive Adjustments (<= 440px)
+   ========================================================================== */
+@media (max-width: 440px) {
+  .app-container {
+    padding: 0.5rem 0.65rem 2.5rem;
+  }
+
+  .brand-logo {
+    width: 30px;
+    height: 30px;
+  }
+
+  .brand-info h1 {
+    font-size: 0.92rem;
+  }
+
+  .brand-tagline {
+    font-size: 0.65rem;
+  }
+
+  .btn-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .btn-clear-right {
+    padding: 0.36rem 0.55rem;
+    font-size: 0.74rem;
+  }
+
+  .date-selector-bar {
+    padding: 0.2rem 0.3rem;
+    gap: 0.25rem;
+  }
+
+  .manual-date-input {
+    width: 106px;
+    font-size: 0.84rem;
+  }
+}
+
+/* ==========================================================================
    Desktop / Tablet Media Query (>= 640px)
    ========================================================================== */
 @media (min-width: 640px) {
@@ -881,24 +963,14 @@ kbd {
   }
 
   .app-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    gap: 1rem;
     padding-bottom: 1.1rem;
   }
 
-  .header-left {
-    flex: 1;
-  }
-
-  .header-center {
-    flex: 1.2;
+  .samples-card-content {
+    flex-direction: row;
     justify-content: center;
-  }
-
-  .header-right {
-    flex: 1;
-    justify-content: flex-end;
+    gap: 1.5rem;
   }
 
   .center-flow-card {

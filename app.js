@@ -383,6 +383,29 @@
     }
   }
 
+  // --- Date Update & Synchronization ---
+  function updateDateForCurrentLog(newIso, newDisplay) {
+    const oldIso = appState.currentDate;
+    const currentData = getActiveDayData();
+
+    currentData.dateFormatted = newDisplay;
+
+    // Immediately update line 1 of textarea
+    if (currentData.isCustom && currentData.customText) {
+      currentData.customText = currentData.customText.replace(/^[^\n]*/, newDisplay);
+      whatsappOutput.value = currentData.customText;
+    } else {
+      whatsappOutput.value = generateFormattedText(currentData);
+    }
+
+    if (oldIso !== newIso) {
+      appState.logsByDate[newIso] = currentData;
+      appState.currentDate = newIso;
+    }
+
+    saveToStorage();
+  }
+
   function switchDate(isoDateStr, updateInput = true) {
     appState.currentDate = isoDateStr;
     appState.flowStep = 'PLACE';
@@ -721,64 +744,97 @@
       showToast('Switched to Today');
     });
 
-    // Manual date input with automatic "/" slashes insertion (e.g. 23 -> 23/, 10 -> 23/10/, 26 -> 23/10/26)
+    // Manual date input: Isolated slot masking (prevents day/month/year shifting into each other)
+    let prevDateInputVal = '';
+
     manualDateInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Backspace') {
+      prevDateInputVal = manualDateInput.value;
+      if (e.key === 'Backspace' && manualDateInput.selectionStart === manualDateInput.selectionEnd) {
+        const pos = manualDateInput.selectionStart;
         const val = manualDateInput.value;
-        if (val.endsWith('/')) {
+        // If cursor is right after a slash (e.g. "23/|10/2026"), delete the digit before the slash
+        if (pos > 0 && val[pos - 1] === '/') {
           e.preventDefault();
-          manualDateInput.value = val.slice(0, -2);
+          const before = val.slice(0, pos - 2);
+          const after = val.slice(pos - 1);
+          manualDateInput.value = before + after;
+          const newPos = Math.max(0, pos - 2);
+          manualDateInput.setSelectionRange(newPos, newPos);
           manualDateInput.dispatchEvent(new Event('input'));
         }
       }
     });
 
-    manualDateInput.addEventListener('input', (e) => {
-      let digits = manualDateInput.value.replace(/\D/g, '');
-      if (digits.length > 8) digits = digits.slice(0, 8);
+    manualDateInput.addEventListener('input', () => {
+      const rawVal = manualDateInput.value;
+      let cursor = manualDateInput.selectionStart;
 
-      let formatted = '';
-      if (digits.length > 0) {
-        formatted = digits.slice(0, 2);
-        if (digits.length >= 2) {
+      // Split by '/' to keep day, month, and year completely isolated
+      const parts = rawVal.split('/');
+      let d = (parts[0] !== undefined ? parts[0] : '').replace(/\D/g, '').slice(0, 2);
+      let m = (parts[1] !== undefined ? parts[1] : '').replace(/\D/g, '').slice(0, 2);
+      let y = (parts[2] !== undefined ? parts[2] : '').replace(/\D/g, '').slice(0, 4);
+
+      let formatted = d;
+      if (parts.length === 1) {
+        if (d.length === 2 && !prevDateInputVal.endsWith('/')) {
           formatted += '/';
-          if (digits.length > 2) {
-            formatted += digits.slice(2, 4);
-            if (digits.length >= 4) {
-              formatted += '/';
-              if (digits.length > 4) {
-                formatted += digits.slice(4, 8);
-              }
-            }
-          }
+          if (cursor === 2) cursor = 3;
         }
+      } else if (parts.length === 2) {
+        formatted += '/' + m;
+        if (m.length === 2 && !prevDateInputVal.endsWith('/')) {
+          formatted += '/';
+          if (cursor === 5) cursor = 6;
+        }
+      } else {
+        formatted += '/' + m + '/' + y;
       }
-      manualDateInput.value = formatted;
 
-      // When full date is entered (6 digits: DDMMYY or 8 digits: DDMMYYYY)
-      if (digits.length === 6 || digits.length === 8) {
-        const d = parseInt(digits.slice(0, 2), 10);
-        const m = parseInt(digits.slice(2, 4), 10);
-        let y = parseInt(digits.slice(4), 10);
-        if (digits.length === 6) {
-          y = y < 100 ? 2000 + y : y;
-        }
-        if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2099) {
-          const isoDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-          if (isoDate !== appState.currentDate) {
-            switchDate(isoDate, false);
-          }
+      manualDateInput.value = formatted;
+      manualDateInput.setSelectionRange(cursor, cursor);
+      prevDateInputVal = formatted;
+
+      // Validate and sync with WhatsApp text editor immediately
+      if (d.length >= 1 && m.length >= 1 && (y.length === 2 || y.length === 4)) {
+        const dayNum = parseInt(d, 10);
+        const monthNum = parseInt(m, 10);
+        let yearNum = parseInt(y, 10);
+        if (y.length === 2) yearNum = 2000 + yearNum;
+
+        if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12 && yearNum >= 2000 && yearNum <= 2099) {
+          const isoDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+          const displayDate = `${String(dayNum).padStart(2, '0')}/${String(monthNum).padStart(2, '0')}/${yearNum}`;
+          updateDateForCurrentLog(isoDate, displayDate);
         }
       }
     });
 
-    // Editor textarea input: Preserve user's manual edits
+    // Editor textarea input: Preserve user's manual edits and sync date changes
     whatsappOutput.addEventListener('input', () => {
       const dayData = getActiveDayData();
       dayData.isCustom = true;
       dayData.customText = whatsappOutput.value;
       saveToStorage();
       updateStatsFromText(whatsappOutput.value);
+
+      // If user edits date line 1 directly inside the textarea, sync back to top header date input
+      const firstLine = (whatsappOutput.value.split('\n')[0] || '').trim();
+      const match = firstLine.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (match) {
+        const d = parseInt(match[1], 10);
+        const m = parseInt(match[2], 10);
+        let y = parseInt(match[3], 10);
+        if (y < 100) y = 2000 + y;
+        if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000 && y <= 2099) {
+          const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const normalized = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+          dayData.dateFormatted = normalized;
+          appState.currentDate = iso;
+          manualDateInput.value = normalized;
+          saveToStorage();
+        }
+      }
     });
 
     // Action buttons
