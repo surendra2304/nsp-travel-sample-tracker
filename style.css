@@ -1,12 +1,12 @@
 /* ==========================================================================
-   NSP Travel & Sample Tracker - Modern Centered Text Editor Stylesheet
+   NSP Travel & Sample Tracker - Professional Stylesheet
    ========================================================================== */
 
 :root {
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", Consolas, Menlo, monospace;
 
-  /* Color Palette - Dark Theme Default */
+  /* Color Palette - Dark Mode Default */
   --bg-primary: #0a0e17;
   --bg-secondary: #111726;
   --bg-tertiary: #192237;
@@ -27,6 +27,7 @@
   --accent-emerald-light: rgba(16, 185, 129, 0.15);
   --accent-cyan: #06b6d4;
   --accent-amber: #f59e0b;
+  --accent-amber-light: rgba(245, 158, 11, 0.15);
   --accent-rose: #f43f5e;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -63,7 +64,6 @@ body.theme-light {
   --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
 }
 
-/* Base Reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -130,7 +130,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* Date Display on Top */
 .header-center {
   display: flex;
   align-items: center;
@@ -259,15 +258,6 @@ body.theme-light .moon-icon { display: block; }
   background: var(--accent-emerald-light);
 }
 
-.history-count-badge {
-  background-color: var(--accent-emerald);
-  color: white;
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 0.05rem 0.38rem;
-  border-radius: var(--radius-full);
-}
-
 /* ==========================================================================
    Main Centered Column Layout
    ========================================================================== */
@@ -361,6 +351,7 @@ kbd {
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 0.45rem 0.6rem 0.45rem 1rem;
+  gap: 0.5rem;
   transition: var(--transition);
 }
 
@@ -378,7 +369,6 @@ kbd {
   align-items: center;
   justify-content: center;
   color: var(--accent-emerald);
-  margin-right: 0.75rem;
 }
 
 .mode-km .input-icon {
@@ -429,6 +419,28 @@ kbd {
   transform: translateY(-1px);
 }
 
+/* End Button */
+.btn-end-route {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--accent-amber);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-end-route:hover {
+  background: var(--accent-amber-light);
+  border-color: var(--accent-amber);
+  color: #fbbf24;
+}
+
 .flow-sub-actions {
   display: flex;
   align-items: center;
@@ -468,7 +480,14 @@ kbd {
   flex-wrap: wrap;
 }
 
-.quick-chips {
+.quick-chips-container {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.quick-chips-list {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -480,18 +499,21 @@ kbd {
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  margin-right: 0.2rem;
+  margin-right: 0.15rem;
 }
 
 .chip {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.25rem 0.55rem;
+  padding: 0.25rem 0.65rem;
   border-radius: var(--radius-full);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   transition: var(--transition);
 }
 
@@ -499,6 +521,35 @@ kbd {
   background: var(--bg-card-hover);
   color: var(--accent-emerald);
   border-color: var(--accent-emerald);
+}
+
+.chip-remove {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 0.2rem;
+}
+
+.chip-remove:hover {
+  color: var(--accent-rose);
+}
+
+.btn-add-chip {
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-add-chip:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.1);
 }
 
 .samples-inline-wrap {
@@ -728,94 +779,6 @@ kbd {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-/* Modals */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 480px;
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.4rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.modal-header h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.modal-body {
-  padding: 1.25rem 1.4rem;
-}
-
-.modal-sub {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.85rem;
-}
-
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  max-height: 360px;
-  overflow-y: auto;
-}
-
-.history-card {
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.history-card:hover {
-  border-color: var(--accent-emerald);
-  background-color: var(--bg-card-hover);
-}
-
-.history-card.active-day {
-  border-color: var(--accent-emerald);
-  background: var(--accent-emerald-light);
-}
-
-.history-date {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-
-.history-km {
-  color: var(--accent-emerald);
-  font-weight: 700;
-  font-family: var(--font-mono);
 }
 
 /* Toast */

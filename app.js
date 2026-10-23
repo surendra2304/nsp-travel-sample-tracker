@@ -1,72 +1,27 @@
 /**
- * NSP Travel & Sample Tracker - Application Logic
- * Clean, centered text editor flow with perfectly aligned WhatsApp formatting.
+ * NSP Travel & Sample Tracker - Professional Logic
+ * Precise column alignment based on longest place name with a small gap.
+ * Includes "End Route" button, clean 0 default for samples, and customizable Quick Select.
  */
 
 (function () {
   'use strict';
 
-  // --- Constants & State ---
-  const STORAGE_KEY = 'nsp_travel_logs_v2';
-  const SETTINGS_KEY = 'nsp_settings_v2';
-  const HYPHEN_COLUMN = 36; // Exact spacing column for all hyphens
+  // --- Storage Keys ---
+  const STORAGE_KEY = 'nsp_travel_logs_v3';
+  const CHIPS_KEY = 'nsp_quick_chips_v3';
+
+  // Clean default chips: Only Lab and Room as requested
+  const DEFAULT_CHIPS = ['Lab', 'Room'];
 
   let appState = {
-    currentDate: getTodayDateString(), // YYYY-MM-DD
+    currentDate: getTodayDateString(),
     logsByDate: {},
+    quickChips: [...DEFAULT_CHIPS],
     flowStep: 'PLACE', // 'PLACE' or 'KM'
     pendingPlace: '',
     settings: {
       theme: 'dark'
-    }
-  };
-
-  // --- Preloaded Demo Data from User Request ---
-  const DEMO_DATA = {
-    '2026-10-18': {
-      dateFormatted: '18-10-2026',
-      samples: 12,
-      stops: [
-        { id: 'd1_1', place: 'Undi', km: 8 },
-        { id: 'd1_2', place: 'Lab', km: 8 },
-        { id: 'd1_3', place: 'Mourya', km: 6 },
-        { id: 'd1_4', place: 'Lab', km: 3 },
-        { id: 'd1_5', place: 'Bus stand', km: 6 },
-        { id: 'd1_6', place: 'Lab', km: 3 },
-        { id: 'd1_7', place: 'Kaikaluru', km: 45 },
-        { id: 'd1_8', place: 'Konduru', km: 15 },
-        { id: 'd1_9', place: 'Bhujabalapatnam', km: 15 },
-        { id: 'd1_10', place: 'Kalavapudi modi', km: 30 },
-        { id: 'd1_11', place: 'Bondadamodi', km: 15 },
-        { id: 'd1_12', place: 'Lab', km: 16 },
-        { id: 'd1_13', place: 'Room', km: 6 }
-      ]
-    },
-    '2026-10-19': {
-      dateFormatted: '19-10-2026',
-      samples: 5,
-      stops: [
-        { id: 'd2_1', place: 'Mandavalli', km: 48 },
-        { id: 'd2_2', place: 'Varahapatnam', km: 19 },
-        { id: 'd2_3', place: 'Kala', km: 28 },
-        { id: 'd2_4', place: 'Kailalanka', km: 9 },
-        { id: 'd2_5', place: 'Lab', km: 19 },
-        { id: 'd2_6', place: 'Room', km: 6 }
-      ]
-    },
-    '2026-10-20': {
-      dateFormatted: '20-10-2026',
-      samples: 8,
-      stops: [
-        { id: 'd3_1', place: 'Gude akalanka', km: 49 },
-        { id: 'd3_2', place: 'Varahapatnam', km: 39 },
-        { id: 'd3_3', place: 'Tadinada', km: 15 },
-        { id: 'd3_4', place: 'Kuppanapudi', km: 15 },
-        { id: 'd3_5', place: 'Cheruku malli', km: 17 },
-        { id: 'd3_6', place: 'Sesali', km: 13 },
-        { id: 'd3_7', place: 'Lab', km: 13 },
-        { id: 'd3_8', place: 'Room', km: 6 }
-      ]
     }
   };
 
@@ -75,16 +30,15 @@
   const formattedDateText = document.getElementById('formattedDateText');
   const btnToday = document.getElementById('btnToday');
   const themeToggleBtn = document.getElementById('themeToggleBtn');
-  const btnLoadDemo = document.getElementById('btnLoadDemo');
-  const btnHistoryDrawer = document.getElementById('btnHistoryDrawer');
-  const historyCount = document.getElementById('historyCount');
+  const btnClearAll = document.getElementById('btnClearAll');
 
-  // Center Flow Box
+  // Center Flow Form
   const centerFlowCard = document.getElementById('centerFlowCard');
   const flowForm = document.getElementById('flowForm');
   const flowInput = document.getElementById('flowInput');
   const flowSubmitBtn = document.getElementById('flowSubmitBtn');
   const btnSubmitText = document.getElementById('btnSubmitText');
+  const btnEndRoute = document.getElementById('btnEndRoute');
   const stepPill = document.getElementById('stepPill');
   const stepHint = document.getElementById('stepHint');
   const placeIcon = document.getElementById('placeIcon');
@@ -92,9 +46,10 @@
   const flowSubActions = document.getElementById('flowSubActions');
   const activePlaceDisplay = document.getElementById('activePlaceDisplay');
   const btnCancelPlace = document.getElementById('btnCancelPlace');
-  const quickChips = document.getElementById('quickChips');
 
-  // Samples
+  // Quick Chips & Samples
+  const quickChipsList = document.getElementById('quickChipsList');
+  const btnAddChip = document.getElementById('btnAddChip');
   const samplesInput = document.getElementById('samplesInput');
   const btnSamplesDec = document.getElementById('btnSamplesDec');
   const btnSamplesInc = document.getElementById('btnSamplesInc');
@@ -107,16 +62,12 @@
   const totalDistanceDisplay = document.getElementById('totalDistanceDisplay');
   const stopsCount = document.getElementById('stopsCount');
   const btnUndoLast = document.getElementById('btnUndoLast');
-  const btnClearAll = document.getElementById('btnClearAll');
 
-  // History Modal & Toast
-  const historyModal = document.getElementById('historyModal');
-  const btnCloseHistory = document.getElementById('btnCloseHistory');
-  const historyList = document.getElementById('historyList');
+  // Toast
   const toast = document.getElementById('toast');
   const toastMessage = document.getElementById('toastMessage');
 
-  // --- Helper Functions ---
+  // --- Date Helpers ---
   function getTodayDateString() {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -141,9 +92,11 @@
       if (storedLogs) {
         appState.logsByDate = JSON.parse(storedLogs);
       }
-      const storedSettings = localStorage.getItem(SETTINGS_KEY);
-      if (storedSettings) {
-        appState.settings = { ...appState.settings, ...JSON.parse(storedSettings) };
+      const storedChips = localStorage.getItem(CHIPS_KEY);
+      if (storedChips) {
+        appState.quickChips = JSON.parse(storedChips);
+      } else {
+        appState.quickChips = [...DEFAULT_CHIPS];
       }
     } catch (e) {
       console.warn('Storage read error:', e);
@@ -161,7 +114,7 @@
   function saveToStorage() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appState.logsByDate));
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(appState.settings));
+      localStorage.setItem(CHIPS_KEY, JSON.stringify(appState.quickChips));
     } catch (e) {
       console.warn('Storage save error:', e);
     }
@@ -173,10 +126,59 @@
       appState.logsByDate[dateKey] = {
         dateFormatted: formatDisplayDate(dateKey),
         stops: [],
-        samples: ''
+        samples: 0 // Default 0 as requested
       };
     }
+    // Guarantee samples defaults to 0
+    if (appState.logsByDate[dateKey].samples === undefined || appState.logsByDate[dateKey].samples === '') {
+      appState.logsByDate[dateKey].samples = 0;
+    }
     return appState.logsByDate[dateKey];
+  }
+
+  // --- Quick Chips Renderer ---
+  function renderQuickChips() {
+    quickChipsList.innerHTML = '';
+    appState.quickChips.forEach((chipName) => {
+      const isDefault = DEFAULT_CHIPS.includes(chipName);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip';
+      btn.setAttribute('data-place', chipName);
+
+      const icon = chipName.toLowerCase().includes('lab') ? '🏢 ' : (chipName.toLowerCase().includes('room') ? '🏠 ' : '📍 ');
+      btn.innerHTML = `<span>${icon}${escapeHtml(chipName)}</span>`;
+
+      // Allow removing custom chips
+      if (!isDefault) {
+        const removeSpan = document.createElement('span');
+        removeSpan.className = 'chip-remove';
+        removeSpan.title = 'Remove chip';
+        removeSpan.textContent = '✕';
+        removeSpan.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          appState.quickChips = appState.quickChips.filter(c => c !== chipName);
+          saveToStorage();
+          renderQuickChips();
+        });
+        btn.appendChild(removeSpan);
+      }
+
+      quickChipsList.appendChild(btn);
+    });
+  }
+
+  function handleAddCustomChip() {
+    const newPlace = prompt('Enter place name to add to Quick Select:');
+    if (newPlace && newPlace.trim()) {
+      const trimmed = newPlace.trim();
+      if (!appState.quickChips.includes(trimmed)) {
+        appState.quickChips.push(trimmed);
+        saveToStorage();
+        renderQuickChips();
+        showToast(`Added "${trimmed}" to Quick Select`);
+      }
+    }
   }
 
   // --- Flow UI Controller (The Center Box) ---
@@ -193,6 +195,8 @@
       flowSubmitBtn.title = 'Next (Enter)';
       btnSubmitText.textContent = 'Next';
       flowSubActions.classList.add('hidden');
+      btnEndRoute.innerHTML = '<span>🏁 End</span>';
+      btnEndRoute.title = 'Finish route and copy text';
     } else {
       centerFlowCard.classList.add('mode-km');
       stepPill.textContent = 'STEP 2';
@@ -207,6 +211,8 @@
       btnSubmitText.textContent = 'Add Stop';
       flowSubActions.classList.remove('hidden');
       activePlaceDisplay.textContent = appState.pendingPlace;
+      btnEndRoute.innerHTML = '<span>🏁 End (No KM)</span>';
+      btnEndRoute.title = `Finish trip at "${appState.pendingPlace}" without entering kilometers`;
     }
     flowInput.focus();
   }
@@ -249,6 +255,56 @@
     }
   }
 
+  // --- End Route Handler ---
+  function handleEndRoute() {
+    const activeData = getActiveDayData();
+
+    if (appState.flowStep === 'KM' && appState.pendingPlace) {
+      // User entered a place name (e.g. Room) and clicked End Route -> No KM needed!
+      activeData.stops.push({
+        id: 'stop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        place: appState.pendingPlace,
+        km: null // No distance after last place!
+      });
+      const endedPlace = appState.pendingPlace;
+      appState.flowStep = 'PLACE';
+      appState.pendingPlace = '';
+
+      saveToStorage();
+      renderAll();
+      updateFlowUI();
+      showToast(`Finished route at ${endedPlace}! Ready to copy.`);
+      btnCopyWhatsapp.focus();
+      return;
+    }
+
+    // If at Step 1 and user typed a place name
+    const currentVal = flowInput.value.trim();
+    if (currentVal) {
+      activeData.stops.push({
+        id: 'stop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        place: currentVal,
+        km: null
+      });
+      flowInput.value = '';
+      saveToStorage();
+      renderAll();
+      updateFlowUI();
+      showToast(`Finished route at ${currentVal}! Ready to copy.`);
+      btnCopyWhatsapp.focus();
+      return;
+    }
+
+    // If input is empty, finalize and focus copy button
+    if (activeData.stops.length > 0) {
+      showToast('Route complete! Ready to copy for WhatsApp.');
+      btnCopyWhatsapp.focus();
+    } else {
+      showToast('Please enter at least one place first.');
+      flowInput.focus();
+    }
+  }
+
   function cancelPlaceStep() {
     appState.flowStep = 'PLACE';
     appState.pendingPlace = '';
@@ -260,9 +316,21 @@
     const dayData = getActiveDayData();
     const dateFormatted = dayData.dateFormatted || formatDisplayDate(appState.currentDate);
     const stops = dayData.stops || [];
-    const samples = (dayData.samples !== undefined && dayData.samples !== '') ? dayData.samples : '';
+    const samples = (dayData.samples !== undefined && dayData.samples !== '') ? dayData.samples : 0;
 
+    // Calculate total kilometers (ignoring null/ended places)
     const totalKm = stops.reduce((acc, stop) => acc + (parseFloat(stop.km) || 0), 0);
+
+    // Dynamic column alignment:
+    // Find the longest place name (like "Kalavapudi modi" - 15) or label length (17)
+    // Small gap of 3 spaces past the longest word as requested
+    const longestWord = Math.max(
+      15, // minimum baseline (Kalavapudi modi / Bhujabalapatnam)
+      'Total Distance'.length, // 14
+      'Collected samples'.length, // 17
+      ...stops.map(s => (s.place ? s.place.length : 0))
+    );
+    const hyphenCol = longestWord + 3;
 
     let lines = [];
 
@@ -275,22 +343,24 @@
     // 3. Each stop on two lines with hyphen and 3 spaces before number
     stops.forEach(stop => {
       lines.push(stop.place);
-      const padding = ' '.repeat(HYPHEN_COLUMN);
-      lines.push(`${padding}-   ${stop.km}`);
+      if (stop.km !== null && stop.km !== undefined && stop.km !== '') {
+        const padding = ' '.repeat(hyphenCol);
+        lines.push(`${padding}-   ${stop.km}`);
+      }
     });
 
     // 4. An empty line below the data and above the totals
     lines.push('');
 
-    // 5. Total Distance and Collected samples perfectly aligned at HYPHEN_COLUMN
+    // 5. Total Distance and Collected samples perfectly aligned in the exact same line/column
     const label1 = 'Total Distance';
     const label2 = 'Collected samples';
 
-    const pad1 = ' '.repeat(Math.max(1, HYPHEN_COLUMN - label1.length));
-    const pad2 = ' '.repeat(Math.max(1, HYPHEN_COLUMN - label2.length));
+    const pad1 = ' '.repeat(Math.max(1, hyphenCol - label1.length));
+    const pad2 = ' '.repeat(Math.max(1, hyphenCol - label2.length));
 
     lines.push(`${label1}${pad1}-   ${totalKm}`);
-    lines.push(`${label2}${pad2}-   ${samples !== '' ? samples : ''}`);
+    lines.push(`${label2}${pad2}-   ${samples}`);
 
     return lines.join('\n');
   }
@@ -308,51 +378,10 @@
     const totalKm = stops.reduce((acc, stop) => acc + (parseFloat(stop.km) || 0), 0);
     totalDistanceDisplay.textContent = totalKm;
     stopsCount.textContent = `${stops.length} stop${stops.length === 1 ? '' : 's'}`;
-    samplesInput.value = (dayData.samples !== undefined && dayData.samples !== '') ? dayData.samples : '';
+    samplesInput.value = dayData.samples !== undefined ? dayData.samples : 0;
 
-    // Formatted Text
+    // Formatted Text in Textarea
     whatsappOutput.value = generateFormattedText();
-
-    // History count
-    historyCount.textContent = Object.keys(appState.logsByDate).length;
-  }
-
-  // --- History Drawer ---
-  function openHistoryDrawer() {
-    historyList.innerHTML = '';
-    const dateKeys = Object.keys(appState.logsByDate).sort().reverse();
-
-    if (dateKeys.length === 0) {
-      historyList.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:1.5rem;">No saved days yet.</p>';
-    } else {
-      dateKeys.forEach(dateKey => {
-        const day = appState.logsByDate[dateKey];
-        const stops = day.stops || [];
-        const totalKm = stops.reduce((acc, s) => acc + (parseFloat(s.km) || 0), 0);
-        const isActive = dateKey === appState.currentDate;
-
-        const card = document.createElement('div');
-        card.className = `history-card ${isActive ? 'active-day' : ''}`;
-        card.innerHTML = `
-          <div>
-            <div class="history-date">${day.dateFormatted || formatDisplayDate(dateKey)} ${isActive ? '<span style="color:var(--accent-emerald);font-size:0.75rem;">(Active)</span>' : ''}</div>
-            <div style="font-size:0.78rem;color:var(--text-secondary);">${stops.length} stops | Samples: <strong>${day.samples !== '' && day.samples !== undefined ? day.samples : '0'}</strong></div>
-          </div>
-          <div class="history-km">${totalKm} KM</div>
-        `;
-        card.addEventListener('click', () => {
-          switchDate(dateKey);
-          closeHistoryDrawer();
-        });
-        historyList.appendChild(card);
-      });
-    }
-
-    historyModal.classList.remove('hidden');
-  }
-
-  function closeHistoryDrawer() {
-    historyModal.classList.add('hidden');
   }
 
   function switchDate(isoDateStr) {
@@ -404,17 +433,6 @@
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
   }
 
-  function loadDemoData() {
-    appState.logsByDate = { ...appState.logsByDate, ...DEMO_DATA };
-    appState.currentDate = '2026-10-18';
-    appState.flowStep = 'PLACE';
-    appState.pendingPlace = '';
-    saveToStorage();
-    renderAll();
-    updateFlowUI();
-    showToast('Loaded demo: 18-10-2026');
-  }
-
   let toastTimer = null;
   function showToast(msg) {
     if (toastTimer) clearTimeout(toastTimer);
@@ -429,6 +447,16 @@
     el.classList.remove('shake');
     void el.offsetWidth;
     el.classList.add('shake');
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   // --- Event Listeners ---
@@ -449,8 +477,10 @@
     });
 
     btnCancelPlace.addEventListener('click', cancelPlaceStep);
+    btnEndRoute.addEventListener('click', handleEndRoute);
 
-    quickChips.addEventListener('click', (e) => {
+    // Quick Chips delegation
+    quickChipsList.addEventListener('click', (e) => {
       const chip = e.target.closest('.chip');
       if (!chip) return;
       const placeName = chip.getAttribute('data-place');
@@ -467,10 +497,13 @@
       }
     });
 
+    btnAddChip.addEventListener('click', handleAddCustomChip);
+
+    // Samples stepper & input (default 0)
     samplesInput.addEventListener('input', () => {
       const dayData = getActiveDayData();
       const val = samplesInput.value.trim();
-      dayData.samples = val === '' ? '' : parseInt(val, 10) || 0;
+      dayData.samples = val === '' ? 0 : parseInt(val, 10) || 0;
       saveToStorage();
       whatsappOutput.value = generateFormattedText();
     });
@@ -527,17 +560,18 @@
       const popped = dayData.stops.pop();
       saveToStorage();
       renderAll();
-      showToast(`Undid: ${popped.place} (${popped.km} km)`);
+      showToast(`Undid: ${popped.place}`);
     });
 
     btnClearAll.addEventListener('click', () => {
       const dayData = getActiveDayData();
       if (!dayData.stops || dayData.stops.length === 0) {
-        showToast('No stops to clear.');
+        showToast('Already clear.');
         return;
       }
       if (confirm(`Clear all stops recorded for ${dayData.dateFormatted}?`)) {
         dayData.stops = [];
+        dayData.samples = 0;
         saveToStorage();
         renderAll();
         showToast('All stops cleared.');
@@ -546,24 +580,12 @@
 
     btnCopyWhatsapp.addEventListener('click', copyToClipboard);
     btnShareWhatsapp.addEventListener('click', shareToWhatsapp);
-    btnLoadDemo.addEventListener('click', loadDemoData);
-
-    btnHistoryDrawer.addEventListener('click', openHistoryDrawer);
-    btnCloseHistory.addEventListener('click', closeHistoryDrawer);
-    historyModal.addEventListener('click', (e) => {
-      if (e.target === historyModal) closeHistoryDrawer();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !historyModal.classList.contains('hidden')) {
-        closeHistoryDrawer();
-      }
-    });
   }
 
   function init() {
     loadFromStorage();
     initEventListeners();
+    renderQuickChips();
     renderAll();
     updateFlowUI();
 
