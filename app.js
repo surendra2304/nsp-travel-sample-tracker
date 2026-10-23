@@ -85,6 +85,13 @@
     return isoDateStr;
   }
 
+  // Auto-capitalize first word
+  function capitalizeFirst(str) {
+    if (!str) return '';
+    const trimmed = str.trim();
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  }
+
   // --- Storage ---
   function loadFromStorage() {
     try {
@@ -171,7 +178,7 @@
   function handleAddCustomChip() {
     const newPlace = prompt('Enter place name to add to Quick Select:');
     if (newPlace && newPlace.trim()) {
-      const trimmed = newPlace.trim();
+      const trimmed = capitalizeFirst(newPlace.trim());
       if (!appState.quickChips.includes(trimmed)) {
         appState.quickChips.push(trimmed);
         saveToStorage();
@@ -226,7 +233,7 @@
         flowInput.focus();
         return;
       }
-      appState.pendingPlace = value;
+      appState.pendingPlace = capitalizeFirst(value);
       appState.flowStep = 'KM';
       updateFlowUI();
     } else if (appState.flowStep === 'KM') {
@@ -241,7 +248,7 @@
 
       activeData.stops.push({
         id: 'stop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        place: appState.pendingPlace,
+        place: capitalizeFirst(appState.pendingPlace),
         km: kmValue
       });
 
@@ -263,10 +270,10 @@
       // User entered a place name (e.g. Room) and clicked End Route -> No KM needed!
       activeData.stops.push({
         id: 'stop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        place: appState.pendingPlace,
+        place: capitalizeFirst(appState.pendingPlace),
         km: null // No distance after last place!
       });
-      const endedPlace = appState.pendingPlace;
+      const endedPlace = capitalizeFirst(appState.pendingPlace);
       appState.flowStep = 'PLACE';
       appState.pendingPlace = '';
 
@@ -283,14 +290,14 @@
     if (currentVal) {
       activeData.stops.push({
         id: 'stop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        place: currentVal,
+        place: capitalizeFirst(currentVal),
         km: null
       });
       flowInput.value = '';
       saveToStorage();
       renderAll();
       updateFlowUI();
-      showToast(`Finished route at ${currentVal}! Ready to copy.`);
+      showToast(`Finished route at ${capitalizeFirst(currentVal)}! Ready to copy.`);
       btnCopyWhatsapp.focus();
       return;
     }
@@ -473,6 +480,20 @@
       } else if (e.key === 'Escape' && appState.flowStep === 'KM') {
         e.preventDefault();
         cancelPlaceStep();
+      }
+    });
+
+    // Auto-capitalize first letter live while typing
+    flowInput.addEventListener('input', () => {
+      if (appState.flowStep === 'PLACE' && flowInput.value.length > 0) {
+        const val = flowInput.value;
+        const capitalized = val.charAt(0).toUpperCase() + val.slice(1);
+        if (val !== capitalized) {
+          const start = flowInput.selectionStart;
+          const end = flowInput.selectionEnd;
+          flowInput.value = capitalized;
+          flowInput.setSelectionRange(start, end);
+        }
       }
     });
 
